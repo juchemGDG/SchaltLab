@@ -1,0 +1,45 @@
+{
+  "name": "schaltlab",
+  "version": "1.0.0",
+  "description": "SchaltLab – Schaltplan-Editor für den Unterricht (Desktop-Version)",
+  "main": "main.js",
+  "author": "juchemGDG",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "release": "electron-builder --publish always"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "de.mint-checker.schaltlab",
+    "productName": "SchaltLab",
+    "copyright": "juchemGDG",
+    "files": ["main.js", "app/**/*", "build/icon.png"],
+    "directories": { "buildResources": "build", "output": "dist" },
+    "publish": [{ "provider": "github", "owner": "juchemGDG", "repo": "SchaltLab" }],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": ["nsis", "portable"],
+      "artifactName": "SchaltLab-${version}-Windows-${arch}.${ext}"
+    },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.education",
+      "identity": null,
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "artifactName": "SchaltLab-${version}-macOS-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Education",
+      "target": ["AppImage", "deb"],
+      "artifactName": "SchaltLab-${version}-Linux-${arch}.${ext}"
+    }
+  }
+}
