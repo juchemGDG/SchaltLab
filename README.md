@@ -7,6 +7,8 @@ Läuft im Browser (eine einzige HTML-Datei) und als Desktop-Version (Electron).
 
 - Bauteile per Drag & Drop (Potentialschiene mit einstellbarer Spannung, GND-Schiene, Masse, Widerstand,
   Kondensator, Elko, Spule, Diode, LED, NPN, PNP, N-/P-MOSFET, OPV, Taster, Schalter, Anschluss)
+- Mikrocontroller-Boards mit den Pins in der Anordnung der echten Platine: ESP32 PICO-KIT V1,
+  Raspberry Pi Pico 2 W, ESP32-C3 Mini (Super Mini); die Beschriftung dreht beim Drehen und Spiegeln mit
 - Leitungen rechtwinklig, automatische Verbindungspunkte, Bauteile drehen/spiegeln (Leitungen laufen mit)
 - Eigene Bauteile zeichnen und ins Menü aufnehmen (Bauteil-Editor), Bibliotheken als Datei teilen
 - Zoomen mit Mausrad, Trackpad oder iPad (zwei Finger) und Zoom-Knöpfen

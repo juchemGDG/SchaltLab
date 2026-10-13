@@ -376,6 +376,7 @@ kbd {
           <li><b>Drehen:</b> <kbd>R</kbd> oder „Drehen“ in der Menüleiste. <b>Spiegeln:</b> <kbd>M</kbd>. Beides wirkt auf alle markierten Bauteile; angeschlossene Leitungen laufen mit.</li>
           <li><b>Beschriftung verschieben:</b> den Text anfassen und ziehen.</li>
           <li><b>Schriftgröße:</b> Bauteile markieren, dann <b>A−</b> / <b>A+</b>. Ohne Markierung gilt es für alle Bauteile.</li>
+          <li><b>Mikrocontroller-Boards</b> (ESP32 PICO-KIT V1, Raspberry Pi Pico 2 W, ESP32-C3 Mini): nur die Pins, in der Anordnung der echten Platine. Mit <kbd>R</kbd> stellst du das Board senkrecht oder waagerecht, die Beschriftung dreht mit. Stimmt bei deinem Board die Seite nicht, hilft <kbd>M</kbd> (Spiegeln).</li>
           <li><b>Schalter / Taster:</b> im Eigenschaften-Dialog (Doppelklick) lässt sich der Zustand „geschlossen“ bzw. „betätigt“ einstellen.</li>
         </ul>
       </section>
@@ -503,8 +504,8 @@ const CS = { 0: [1, 0], 90: [0, 1], 180: [-1, 0], 270: [0, -1] };
 const LS_KEY = 'schaltplan_eigene_bauteile_v1';
 
 const CAT_SUP = 'Versorgung', CAT_PAS = 'Passive Bauteile', CAT_SEM = 'Halbleiter',
-      CAT_SW = 'Schalter & Taster', CAT_MISC = 'Sonstiges', CAT_OWN = 'Eigene Bauteile';
-const BUILTIN_CATS = [CAT_SUP, CAT_PAS, CAT_SEM, CAT_SW, CAT_MISC];
+      CAT_SW = 'Schalter & Taster', CAT_MCU = 'Mikrocontroller', CAT_MISC = 'Sonstiges', CAT_OWN = 'Eigene Bauteile';
+const BUILTIN_CATS = [CAT_SUP, CAT_PAS, CAT_SEM, CAT_SW, CAT_MCU, CAT_MISC];
 
 /* ══════════════════════════════════════════════════════════════
    Bauteil-Definitionen (Primitive in px, Anschlüsse auf 20er-Raster)
@@ -635,6 +636,48 @@ def({ id: 'button', name: 'Taster', cat: CAT_SW, prefix: 'S', value: '', hint: '
   prims: swBase.concat([L(-12, 0, 9, -15), L(-1.5, -7.5, -1.5, -24, { dash: '4 3', lw: 1.5 }), L(-9, -24, 6, -24, { lw: 3 })]),
   altPrims: swBase.concat([L(-12, 0, 12, 0), L(0, -1.5, 0, -14, { dash: '4 3', lw: 1.5 }), L(-8, -14, 8, -14, { lw: 3 })]),
   pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')] });
+
+/* Mikrocontroller-Boards: Pins in der Anordnung der echten Platine (Pins nur, kein Innenleben).
+   Beschriftung 'rt' = dreht beim Drehen/Spiegeln mit und bleibt lesbar. */
+function board(o) {
+  const n = Math.max(o.left.length, o.right.length), y0 = -Math.floor(n / 2) * 20, yN = y0 + (n - 1) * 20;
+  const yt = y0 - 34, yb = yN + 26;
+  const prims = [R(-80, yt, 160, yb - yt), T(0, y0 - 16, o.title, { size: 13, anchor: 'middle', rt: 1 })];
+  const pins = [];
+  o.left.forEach((nm, i) => {
+    if (!nm) return; const y = y0 + i * 20;
+    prims.push(L(-100, y, -80, y), T(-74, y, nm, { size: 11, anchor: 'start', rt: 1 })); pins.push(pin(-100, y, nm, 'W'));
+  });
+  o.right.forEach((nm, i) => {
+    if (!nm) return; const y = y0 + i * 20;
+    prims.push(L(80, y, 100, y), T(74, y, nm, { size: 11, anchor: 'end', rt: 1 })); pins.push(pin(100, y, nm, 'E'));
+  });
+  prims.push(o.usb === 'top' ? R(-16, yt - 6, 32, 14, { lw: 1.5 }) : R(-16, yb - 8, 32, 14, { lw: 1.5 }));
+  return { prims, pins };
+}
+function boardPreview(chip) {
+  const p = [R(-60, -24, 120, 48), R(-68, -7, 12, 14, { lw: 1.5 }), R(chip[0], chip[1], chip[2], chip[3], { lw: 1.2 })];
+  for (let k = 0; k < 10; k++) { const x = -48 + k * 11; p.push(L(x, -24, x, -31, { lw: 1 }), L(x, 24, x, 31, { lw: 1 })); }
+  return p;
+}
+const mcu = (id, name, hint, title, left, right, usb, chip) =>
+  def(Object.assign({ id, name, cat: CAT_MCU, prefix: 'MC', value: '', hint, preview: boardPreview(chip) }, board({ title, left, right, usb })));
+
+/* Espressif ESP32-PICO-KIT (V1/V4, 2x20 Pins): links Leiste J2, rechts J3 (je Pin 1 oben), USB unten */
+mcu('mcu_esp32_pico_kit', 'ESP32 PICO-KIT V1', 'PICO-KIT, 40 Pins, USB unten', 'ESP32 PICO-KIT',
+  ['FSD1 (8)', 'FSD3 (7)', 'FCLK (6)', 'IO21', 'IO22', 'IO19', 'IO23', 'IO18', 'IO5', 'IO10', 'IO9', 'RXD0 (3)', 'TXD0 (1)', 'IO35', 'IO34', 'IO38', 'IO37', 'EN', 'GND', '3V3'],
+  ['FCS (16)', 'FSD0 (17)', 'FSD2 (11)', 'VP (36)', 'VN (39)', 'IO25', 'IO26', 'IO32', 'IO33', 'IO27', 'IO14', 'IO12', 'IO13', 'IO15', 'IO2', 'IO4', 'IO0', '3V3', 'GND', '5V'],
+  'bottom', [-10, -10, 26, 20]);
+/* Raspberry Pi Pico 2 W: Pin 1-20 links (oben nach unten), Pin 40-21 rechts, USB oben */
+mcu('mcu_pico2w', 'Raspberry Pi Pico 2 W', '40 Pins, USB oben', 'Pico 2 W',
+  ['GP0', 'GP1', 'GND', 'GP2', 'GP3', 'GP4', 'GP5', 'GND', 'GP6', 'GP7', 'GP8', 'GP9', 'GND', 'GP10', 'GP11', 'GP12', 'GP13', 'GND', 'GP14', 'GP15'],
+  ['VBUS', 'VSYS', 'GND', '3V3_EN', '3V3(OUT)', 'ADC_VREF', 'GP28', 'AGND', 'GP27', 'GP26', 'RUN', 'GP22', 'GND', 'GP21', 'GP20', 'GP19', 'GP18', 'GND', 'GP17', 'GP16'],
+  'top', [-14, -12, 28, 24]);
+/* ESP32-C3 Mini (Super Mini, 16 Pins), USB oben */
+mcu('mcu_esp32c3', 'ESP32-C3 Mini', 'Super Mini, 16 Pins, USB oben', 'ESP32-C3 Mini',
+  ['5V', 'GND', '3V3', 'IO4', 'IO3', 'IO2', 'IO1', 'IO0'],
+  ['IO5', 'IO6', 'IO7', 'IO8 (LED)', 'IO9 (BOOT)', 'IO10', 'RX (20)', 'TX (21)'],
+  'top', [-10, -10, 26, 20]);
 
 /* Sonstiges */
 def({ id: 'terminal', name: 'Anschluss', cat: CAT_MISC, prefix: '', value: 'Ue', hint: 'Ein-/Ausgang mit Beschriftung',
@@ -939,8 +982,15 @@ function textSVG(x, y, text, size, anchor, col) {
 function symbolSVG(inst, d, col, sw) {
   const prims = (inst.on && d.altPrims) ? d.altPrims : d.prims;
   let shapes = '', texts = '';
+  const mir = inst.mir ? 1 : 0, r180 = (inst.rot || 0) === 180;
   for (const p of prims) {
-    if (p.t === 'text') { const q = xf(inst, p.x, p.y); texts += textSVG(q[0], q[1], p.text, p.size || 14, p.anchor || 'middle', col); }
+    if (p.t === 'text' && p.rt) {
+      /* Text dreht mit dem Bauteil, steht aber nie spiegelverkehrt oder auf dem Kopf */
+      let a = p.anchor || 'middle';
+      if (mir !== (r180 ? 1 : 0)) a = a === 'start' ? 'end' : a === 'end' ? 'start' : a;
+      shapes += `<text transform="translate(${p.x} ${p.y})${mir ? ' scale(-1 1)' : ''}${r180 ? ' rotate(180)' : ''}" font-size="${p.size || 14}" text-anchor="${a}" dominant-baseline="central" fill="${col}" font-family="Helvetica, Arial, sans-serif">${esc(p.text)}</text>`;
+    }
+    else if (p.t === 'text') { const q = xf(inst, p.x, p.y); texts += textSVG(q[0], q[1], p.text, p.size || 14, p.anchor || 'middle', col); }
     else shapes += primSVG(p, col, sw);
   }
   return `<g transform="${tf(inst)}">${shapes}</g>${texts}`;
@@ -1534,7 +1584,9 @@ function fitView() {
    ══════════════════════════════════════════════════════════════
    */
 function previewSVG(d, W, H, col) {
-  const g = resolveDefault(d), b = bboxOf(g);
+  let g = resolveDefault(d);
+  if (d.preview) g = Object.assign({}, g, { prims: d.preview, pins: [] });
+  const b = bboxOf(g);
   const pad = 8, vw = Math.max(b[2] - b[0], 24) + 2 * pad, vh = Math.max(b[3] - b[1], 24) + 2 * pad;
   const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2, sc = Math.min(W / vw, H / vh);
   const sw = clamp(1.7 / sc, 2, 5);
@@ -2070,10 +2122,17 @@ render();
    Editor → Host: {source:'schaltplan-editor', event:'ready' | 'save' | 'exit' | 'download'}
    Host → Editor: {target:'schaltplan-editor', action:'load', diagram, title, downloads}
    ══════════════════════════════════════════════════════════════ */
+function fallbackOrigin() {
+  try { if (location.ancestorOrigins && location.ancestorOrigins[0]) return location.ancestorOrigins[0]; } catch (_) {}
+  try { if (document.referrer) return new URL(document.referrer).origin; } catch (_) {}
+  return null;
+}
 function toHost(msg, open) {
   if (window.parent === window) return;
-  const origin = open ? '*' : hostOrigin;
-  if (!origin) return;                       /* Daten gehen nur an den Origin, der 'load' geschickt hat */
+  /* Zielorigin: der des 'load'-Absenders, sonst der des Einbettenden (Referrer/ancestorOrigins).
+     Ohne beides nur 'exit' (keine Daten) an '*', damit Schließen immer funktioniert. */
+  const origin = open ? '*' : (hostOrigin || fallbackOrigin() || (msg.event === 'exit' ? '*' : null));
+  if (!origin) return;
   try { window.parent.postMessage(Object.assign({ source: 'schaltplan-editor' }, msg), origin === 'null' ? '*' : origin); } catch (_) {}
 }
 if (EMBED) {
@@ -2081,8 +2140,10 @@ if (EMBED) {
   window.addEventListener('message', e => {
     if (e.source !== window.parent) return;
     const m = e.data;
-    if (!m || m.target !== 'schaltplan-editor' || m.action !== 'load') return;
-    hostOrigin = e.origin; hostDownloads = !!m.downloads;
+    if (!m || m.target !== 'schaltplan-editor') return;
+    hostOrigin = e.origin;       /* jede Nachricht des Hosts legt den Rückkanal fest */
+    if (m.action !== 'load') return;
+    hostDownloads = !!m.downloads;
     const title = m.title ? String(m.title).replace(/[\\/:*?"<>|]+/g, '_').trim() : '';
     if (m.diagram) {
       try { loadDocObj(typeof m.diagram === 'string' ? JSON.parse(m.diagram) : m.diagram, title); }
