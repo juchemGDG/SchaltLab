@@ -505,7 +505,7 @@ const LS_KEY = 'schaltplan_eigene_bauteile_v1';
 
 const CAT_SUP = 'Versorgung', CAT_PAS = 'Passive Bauteile', CAT_SEM = 'Halbleiter',
       CAT_SW = 'Schalter & Taster', CAT_MCU = 'Mikrocontroller', CAT_MISC = 'Sonstiges', CAT_OWN = 'Eigene Bauteile';
-const BUILTIN_CATS = [CAT_SUP, CAT_PAS, CAT_SEM, CAT_SW, CAT_MCU, CAT_MISC];
+const BUILTIN_CATS = [CAT_SUP, CAT_PAS, CAT_SEM, CAT_SW, CAT_MISC, CAT_MCU];
 
 /* ══════════════════════════════════════════════════════════════
    Bauteil-Definitionen (Primitive in px, Anschlüsse auf 20er-Raster)
@@ -556,6 +556,10 @@ def({ id: 'resistor', name: 'Widerstand', cat: CAT_PAS, prefix: 'R', value: '1 k
   suggest: ['100 Ω', '220 Ω', '330 Ω', '470 Ω', '1 kΩ', '4,7 kΩ', '10 kΩ', '100 kΩ'],
   prims: [L(-40, 0, -30, 0), L(30, 0, 40, 0), R(-30, -10, 60, 20)],
   pins: [pin(-40, 0, '1', 'W'), pin(40, 0, '2', 'E')] });
+def({ id: 'poti', name: 'Potentiometer', cat: CAT_PAS, prefix: 'R', value: '10 kΩ', hint: 'Schleifer oben (A · W · B)',
+  suggest: ['1 kΩ', '10 kΩ', '47 kΩ', '100 kΩ', '1 MΩ'],
+  prims: [L(-40, 0, -30, 0), L(30, 0, 40, 0), R(-30, -10, 60, 20), L(0, -40, 0, -10), arrowHead(0, -40, 0, -10, 8)],
+  pins: [pin(-40, 0, 'A', 'W'), pin(40, 0, 'B', 'E'), pin(0, -40, 'W', 'N')] });
 def({ id: 'capacitor', name: 'Kondensator', cat: CAT_PAS, prefix: 'C', value: '100 nF', hint: 'ungepolt',
   suggest: ['10 pF', '100 pF', '1 nF', '10 nF', '100 nF', '1 µF', '10 µF'],
   prims: [L(-40, 0, -5, 0), L(5, 0, 40, 0), L(-5, -16, -5, 16, { lw: 3 }), L(5, -16, 5, 16, { lw: 3 })],
@@ -640,6 +644,8 @@ def({ id: 'button', name: 'Taster', cat: CAT_SW, prefix: 'S', value: '', hint: '
 /* Mikrocontroller-Boards: Pins in der Anordnung der echten Platine (Pins nur, kein Innenleben).
    Beschriftung 'rt' = dreht beim Drehen/Spiegeln mit und bleibt lesbar. */
 function board(o) {
+  /* Ansicht von unten (Pinseite, Board steckt auf dem Breadboard): links und rechts vertauscht */
+  o = Object.assign({}, o, { left: o.right, right: o.left });
   const n = Math.max(o.left.length, o.right.length), y0 = -Math.floor(n / 2) * 20, yN = y0 + (n - 1) * 20;
   const yt = y0 - 34, yb = yN + 26;
   const prims = [R(-80, yt, 160, yb - yt), T(0, y0 - 16, o.title, { size: 13, anchor: 'middle', rt: 1 })];
@@ -663,7 +669,7 @@ function boardPreview(chip) {
 const mcu = (id, name, hint, title, left, right, usb, chip) =>
   def(Object.assign({ id, name, cat: CAT_MCU, prefix: 'MC', value: '', hint, preview: boardPreview(chip) }, board({ title, left, right, usb })));
 
-/* Espressif ESP32-PICO-KIT (V1/V4, 2x20 Pins): links Leiste J2, rechts J3 (je Pin 1 oben), USB unten */
+/* Espressif ESP32-PICO-KIT (V1/V4, 2x20 Pins): links Leiste J2, rechts J3 (je Pin 1 oben), USB unten, Ansicht von unten */
 mcu('mcu_esp32_pico_kit', 'ESP32 PICO-KIT V1', 'PICO-KIT, 40 Pins, USB unten', 'ESP32 PICO-KIT',
   ['FSD1 (8)', 'FSD3 (7)', 'FCLK (6)', 'IO21', 'IO22', 'IO19', 'IO23', 'IO18', 'IO5', 'IO10', 'IO9', 'RXD0 (3)', 'TXD0 (1)', 'IO35', 'IO34', 'IO38', 'IO37', 'EN', 'GND', '3V3'],
   ['FCS (16)', 'FSD0 (17)', 'FSD2 (11)', 'VP (36)', 'VN (39)', 'IO25', 'IO26', 'IO32', 'IO33', 'IO27', 'IO14', 'IO12', 'IO13', 'IO15', 'IO2', 'IO4', 'IO0', '3V3', 'GND', '5V'],
@@ -2119,8 +2125,8 @@ render();
 
 /* ══════════════════════════════════════════════════════════════
    Einbettung (?embed=1) – gleiches postMessage-Protokoll wie PAP- und IBD-Editor
-   Editor → Host: {source:'schaltplan-editor', event:'ready' | 'save' | 'exit' | 'download'}
-   Host → Editor: {target:'schaltplan-editor', action:'load', diagram, title, downloads}
+   Editor → Host: {source:'schaltlab', event:'ready' | 'save' | 'exit' | 'download'}
+   Host → Editor: {target:'schaltlab' (auch 'schaltplan-editor'), action:'load', diagram, title, downloads}
    ══════════════════════════════════════════════════════════════ */
 function fallbackOrigin() {
   try { if (location.ancestorOrigins && location.ancestorOrigins[0]) return location.ancestorOrigins[0]; } catch (_) {}
@@ -2133,14 +2139,14 @@ function toHost(msg, open) {
      Ohne beides nur 'exit' (keine Daten) an '*', damit Schließen immer funktioniert. */
   const origin = open ? '*' : (hostOrigin || fallbackOrigin() || (msg.event === 'exit' ? '*' : null));
   if (!origin) return;
-  try { window.parent.postMessage(Object.assign({ source: 'schaltplan-editor' }, msg), origin === 'null' ? '*' : origin); } catch (_) {}
+  try { window.parent.postMessage(Object.assign({ source: 'schaltlab' }, msg), origin === 'null' ? '*' : origin); } catch (_) {}
 }
 if (EMBED) {
   document.body.classList.add('embed');
   window.addEventListener('message', e => {
     if (e.source !== window.parent) return;
     const m = e.data;
-    if (!m || m.target !== 'schaltplan-editor') return;
+    if (!m || (m.target !== 'schaltlab' && m.target !== 'schaltplan-editor')) return;
     hostOrigin = e.origin;       /* jede Nachricht des Hosts legt den Rückkanal fest */
     if (m.action !== 'load') return;
     hostDownloads = !!m.downloads;
