@@ -603,6 +603,12 @@ def({ id: 'pnp', name: 'PNP-Transistor', cat: CAT_SEM, prefix: 'T', value: 'BC55
   prims: [C(7, 0, 29, { lw: 1.5 }), L(-40, 0, -6, 0), L(-6, -20, -6, 20, { lw: 3 }),
     L(-6, 8, 20, 24), L(20, 24, 20, 40), L(-6, -8, 20, -24), L(20, -24, 20, -40), arrowHead(20, -24, 0.5, -12, 8)],
   pins: [pin(-40, 0, 'B', 'W'), pin(20, 40, 'C', 'S'), pin(20, -40, 'E', 'N')] });
+def({ id: 'phototransistor', name: 'Fototransistor', cat: CAT_SEM, prefix: 'T', value: 'BPW40', hint: 'NPN, lichtempfindlich · C · E',
+  suggest: ['BPW40', 'BPW85', 'SFH 309', 'TEPT4400'],
+  prims: [C(7, 0, 29, { lw: 1.5 }), L(-6, -20, -6, 20, { lw: 3 }),
+    L(-6, -8, 20, -24), L(20, -24, 20, -40), L(-6, 8, 20, 24), L(20, 24, 20, 40), arrowHead(-6, 8, 16.1, 21.6, 8)]
+    .concat(arrow(-44, -24, -28, -8, 6), arrow(-44, -6, -28, 10, 6)),
+  pins: [pin(20, -40, 'C', 'N'), pin(20, 40, 'E', 'S')] });
 def({ id: 'nmos', name: 'N-MOSFET', cat: CAT_SEM, prefix: 'T', value: 'BS170', hint: 'G · D · S (selbstsperrend)',
   suggest: ['BS170', '2N7000', 'IRLZ44N', 'IRF540'],
   prims: [L(-40, 0, -14, 0), L(-14, -16, -14, 16, { lw: 3 }),
